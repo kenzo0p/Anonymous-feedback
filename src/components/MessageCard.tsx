@@ -37,7 +37,7 @@ function MessageCard({ message, onMessageDelete }: MessageCardProps) {
     toast({
       title: response.data.message,
     });
-    onMessageDelete(message._id);
+    onMessageDelete(message._id as string);
   };
   return (
     <Card>
