@@ -40,12 +40,12 @@ function MessageCard({ message, onMessageDelete }: MessageCardProps) {
     onMessageDelete(message._id as string);
   };
   return (
-    <Card>
+    <Card className="w-fit">
       <CardHeader>
-        <CardTitle>Card Title</CardTitle>
+        <CardTitle></CardTitle>
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button variant="destructive">
+            <Button variant="destructive" className="w-fit ">
               <X className="w-5 h-5" />
             </Button>
           </AlertDialogTrigger>
@@ -65,7 +65,7 @@ function MessageCard({ message, onMessageDelete }: MessageCardProps) {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-        <CardDescription>Card Description</CardDescription>
+        <CardDescription className="text-bold">{message.content}</CardDescription>
       </CardHeader>
       <CardContent></CardContent>
     </Card>

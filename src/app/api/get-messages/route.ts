@@ -35,10 +35,11 @@ export async function GET(request: Request) {
       },
       { $group: { _id: '$_id', messages: { $push: '$messages' } } },
     ]).exec();
+    console.log("AGGREGATE RESULT:", user);
 
     if (!user || user.length === 0) {
       return Response.json(
-        { success: false, message: "User not found" },
+        { success: false, message: "no messages found" },
         { status: 404 }
       );
     }

@@ -1,6 +1,7 @@
 import { OpenAI } from "openai";
 import { NextResponse } from "next/server";
 
+
 //USE CASE
 
 //1. User will click on suggest-message
@@ -10,6 +11,12 @@ import { NextResponse } from "next/server";
 const openai = new OpenAI({     
   apiKey: process.env.OPENAI_API_KEY,
 });
+
+
+
+type GoogleModelCacheableId =
+  | 'models/gemini-1.5-flash-001'
+  | 'models/gemini-1.5-pro-001';
 
 export const runtime = "edge";
 
@@ -24,7 +31,7 @@ export async function POST(req: Request) {
       max_tokens: 400,
       stream: true,
     });
-
+    
     const stream = new ReadableStream({
       async start(controller) {
         for await (const chunk of response) {
