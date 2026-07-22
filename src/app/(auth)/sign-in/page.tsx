@@ -3,10 +3,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import Link from "next/link";
-import {  useState } from "react";
+import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-
 import {
   Form,
   FormControl,
@@ -20,12 +19,12 @@ import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { singInSchema } from "@/schemas/signInSchema";
 import { signIn } from "next-auth/react";
-const page = () => {
+
+function SignInPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
 
-  // zod implementation
   const form = useForm<z.infer<typeof singInSchema>>({
     resolver: zodResolver(singInSchema),
     defaultValues: {
@@ -35,52 +34,56 @@ const page = () => {
   });
 
   const onSubmit = async (data: z.infer<typeof singInSchema>) => {
-    setIsSubmitting(true)
-    const result = await signIn('credentials' , {
-    redirect:false,
-    identifier:data.identifier,
-    password:data.password
-   })
-   console.log(result)
-   if(result?.error){
-    toast({
-      title:"SignIn Failed",
-      description:"Incorrect username or password",
-      variant:"destructive"
-    })
-   }else {
-    toast({
-      title :"SignIn successfull",
-      description:"You are signed In successfully",
-      variant:"destructive"
-    })
-   }
-   setIsSubmitting(false)
-   if(result?.url){
-    router.replace('/dashboard')
-   }
+    setIsSubmitting(true);
+    const result = await signIn("credentials", {
+      redirect: false,
+      identifier: data.identifier,
+      password: data.password,
+    });
+    if (result?.error) {
+      toast({
+        title: "Sign-in failed",
+        description: "Incorrect username or password",
+        variant: "destructive",
+      });
+    } else if (result?.ok) {
+      toast({
+        title: "Signed in",
+        description: "Welcome back.",
+      });
+      router.replace("/dashboard");
+    }
+    setIsSubmitting(false);
   };
+
   return (
-    <div className="flex justify-center items-center min-h-screen bg-[#54708d]">
-      <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow-md">
-      <div className="text-center">
-          <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl mb-6">
-            Join Anonymous Feedback
+    <div className="relative flex flex-1 items-center justify-center overflow-hidden px-4 py-16">
+      <div className="pointer-events-none absolute inset-0 bg-grid" />
+      <div className="relative w-full max-w-md rounded-xl border border-border bg-card p-8 shadow-sm">
+        <div className="mb-8">
+          <span className="eyebrow">Welcome back</span>
+          <h1 className="mt-3 text-3xl font-bold tracking-tight">
+            Sign in
           </h1>
-          <p className="mb-4">Sign in to start your anonymous adventure</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Access your dashboard and read your messages.
+          </p>
         </div>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="spaxe-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
             <FormField
               name="identifier"
               control={form.control}
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email/username</FormLabel>
+                  <FormLabel>Email or username</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter your email/username" {...field} />
+                    <Input
+                      className="h-10"
+                      placeholder="you@example.com"
+                      {...field}
+                    />
                   </FormControl>
-                  
                   <FormMessage />
                 </FormItem>
               )}
@@ -93,37 +96,43 @@ const page = () => {
                   <FormLabel>Password</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="Enter your password"
+                      className="h-10"
+                      placeholder="Your password"
                       type="password"
                       {...field}
                     />
                   </FormControl>
-                
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <Button className="w-full mt-4"  type="submit" disabled={isSubmitting}>
+            <Button
+              className="h-10 w-full"
+              type="submit"
+              disabled={isSubmitting}
+            >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> please wait
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Signing in…
                 </>
               ) : (
-                "Signin"
+                "Sign in"
               )}
             </Button>
           </form>
         </Form>
-        <div className="text-center mt-4">
-          <p>
-            Don't have an account?{" "}
-            <Link href="/sign-up" className="text-blue-600 hover:text-blue-800">
-              SignUp
-            </Link>
-          </p>
-        </div>
+        <p className="mt-6 text-center text-sm text-muted-foreground">
+          Don&apos;t have an account?{" "}
+          <Link
+            href="/sign-up"
+            className="font-medium text-foreground underline underline-offset-4 hover:text-brand"
+          >
+            Sign up
+          </Link>
+        </p>
       </div>
     </div>
   );
-};
-export default page;
+}
+
+export default SignInPage;

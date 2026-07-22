@@ -9,7 +9,7 @@ export async function POST(request:Request) {
         const decodedUsername = decodeURIComponent(username)
         const user = await UserModel.findOne({username:decodedUsername})
         if(!user) {
-            return Response.json({success:false , message:"user not found"} , {status:500})
+            return Response.json({success:false , message:"user not found"} , {status:404})
         }
         const isCodeValid = user.verifyCode === code
         const isCodeNotExpired = new Date(user.verifyCodeExpiry) > new Date()

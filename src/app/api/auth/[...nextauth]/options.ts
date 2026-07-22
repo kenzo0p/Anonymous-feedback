@@ -1,4 +1,4 @@
-import { NextAuthOptions } from 'next-auth';
+import { NextAuthOptions, User } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import dbConnect from '@/lib/dbConnect';
@@ -10,11 +10,16 @@ export const authOptions: NextAuthOptions = {
       id: 'credentials',
       name: 'Credentials',
       credentials: {
-        email: { label: 'Email', type: 'text' },
+        identifier: { label: 'Email or Username', type: 'text' },
         password: { label: 'Password', type: 'password' },
       },
-      async authorize(credentials: any): Promise<any> {
+      async authorize(
+        credentials: Record<string, string> | undefined
+      ): Promise<User | null> {
         await dbConnect();
+        if (!credentials?.identifier || !credentials?.password) {
+          throw new Error('Missing email/username or password');
+        }
         try {
           const user = await UserModel.findOne({
             $or: [
@@ -32,13 +37,23 @@ export const authOptions: NextAuthOptions = {
             credentials.password,
             user.password
           );
-          if (isPasswordCorrect) {
-            return user;
-          } else {
+          if (!isPasswordCorrect) {
             throw new Error('Incorrect password');
           }
-        } catch (err: any) {
-          throw new Error(err);
+          return {
+            id: user._id?.toString() ?? '',
+            _id: user._id?.toString(),
+            username: user.username,
+            email: user.email,
+            isVerified: user.isVerified,
+            isAcceptingMessages: user.isAcceptingMessages,
+          };
+        } catch (err) {
+          // Preserve the original error message instead of stringifying
+          // the Error object (which produced "Error: Error: ...").
+          throw new Error(
+            err instanceof Error ? err.message : 'Authentication failed'
+          );
         }
       },
     }),

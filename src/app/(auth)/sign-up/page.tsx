@@ -13,7 +13,6 @@ import { ApiResponse } from "@/types/ApiResponse";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -21,8 +20,9 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
-const page = () => {
+import { Check, Loader2, X } from "lucide-react";
+
+function SignUpPage() {
   const [username, setUsername] = useState("");
   const [usernameMessage, setUsernameMessage] = useState("");
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
@@ -31,7 +31,6 @@ const page = () => {
   const { toast } = useToast();
   const router = useRouter();
 
-  // zod implementation
   const form = useForm<z.infer<typeof signUpSchema>>({
     resolver: zodResolver(signUpSchema),
     defaultValues: {
@@ -50,7 +49,6 @@ const page = () => {
           const response = await axios.get(
             `/api/check-username-unique?username=${username}`
           );
-          console.log(response);
           setUsernameMessage(response.data.message);
         } catch (error) {
           const axiosError = error as AxiosError<ApiResponse>;
@@ -64,12 +62,13 @@ const page = () => {
     };
     checkUsernameUnique();
   }, [username]);
+
   const onSubmit = async (data: z.infer<typeof signUpSchema>) => {
     setIsSubmitting(true);
     try {
       const response = await axios.post<ApiResponse>("/api/sign-up", data);
       toast({
-        title: "Success",
+        title: "Account created",
         description: response.data.message,
       });
       router.replace(`/verify/${username}`);
@@ -77,7 +76,7 @@ const page = () => {
     } catch (error) {
       console.error("Error in signup of user", error);
       const axiosError = error as AxiosError<ApiResponse>;
-      let errorMessage = axiosError.response?.data.message;
+      const errorMessage = axiosError.response?.data.message;
       toast({
         title: "Sign-up failed",
         description: errorMessage,
@@ -86,17 +85,24 @@ const page = () => {
       setIsSubmitting(false);
     }
   };
+
+  const isAvailable = usernameMessage === "Username is unique";
+
   return (
-    <div className="flex justify-center items-center min-h-screen bg-[#54708d]">
-      <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow-md">
-      <div className="text-center">
-          <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl mb-6">
-            Join Anonymous Feedback
+    <div className="relative flex flex-1 items-center justify-center overflow-hidden px-4 py-16">
+      <div className="pointer-events-none absolute inset-0 bg-grid" />
+      <div className="relative w-full max-w-md rounded-xl border border-border bg-card p-8 shadow-sm">
+        <div className="mb-8">
+          <span className="eyebrow">Create account</span>
+          <h1 className="mt-3 text-3xl font-bold tracking-tight">
+            Join Candor
           </h1>
-          <p className="mb-4">Sign up to start your anonymous adventure</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Claim your link and start collecting anonymous feedback.
+          </p>
         </div>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="spaxe-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
             <FormField
               name="username"
               control={form.control}
@@ -105,7 +111,8 @@ const page = () => {
                   <FormLabel>Username</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="Enter your username"
+                      className="h-10"
+                      placeholder="your-handle"
                       {...field}
                       onChange={(e) => {
                         field.onChange(e);
@@ -113,8 +120,33 @@ const page = () => {
                       }}
                     />
                   </FormControl>
-                    {isCheckingUsername && <Loader2 className="animate-spin"/>}
-                    <p className={`text-sm ${usernameMessage === "Username is unique" ? 'text-green-500' : 'text-red-500'}`}> {usernameMessage}</p>
+                  {username && (
+                    <p
+                      className={`flex items-center gap-1.5 text-xs ${
+                        isCheckingUsername
+                          ? "text-muted-foreground"
+                          : isAvailable
+                            ? "text-brand"
+                            : "text-destructive"
+                      }`}
+                    >
+                      {isCheckingUsername ? (
+                        <>
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          Checking availability…
+                        </>
+                      ) : (
+                        <>
+                          {isAvailable ? (
+                            <Check className="h-3.5 w-3.5" />
+                          ) : (
+                            <X className="h-3.5 w-3.5" />
+                          )}
+                          {usernameMessage}
+                        </>
+                      )}
+                    </p>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
@@ -126,9 +158,12 @@ const page = () => {
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter your email" {...field} />
+                    <Input
+                      className="h-10"
+                      placeholder="you@example.com"
+                      {...field}
+                    />
                   </FormControl>
-                  
                   <FormMessage />
                 </FormItem>
               )}
@@ -141,37 +176,44 @@ const page = () => {
                   <FormLabel>Password</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="Enter your password"
+                      className="h-10"
+                      placeholder="At least 6 characters"
                       type="password"
                       {...field}
                     />
                   </FormControl>
-                
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <Button className="w-full mt-4"  type="submit" disabled={isSubmitting}>
+            <Button
+              className="h-10 w-full"
+              type="submit"
+              disabled={isSubmitting}
+            >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> please wait
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating
+                  account…
                 </>
               ) : (
-                "Signup"
+                "Create account"
               )}
             </Button>
           </form>
         </Form>
-        <div className="text-center mt-4">
-          <p>
-            Already a member?{" "}
-            <Link href="/sign-in" className="text-blue-600 hover:text-blue-800">
-              Sign in
-            </Link>
-          </p>
-        </div>
+        <p className="mt-6 text-center text-sm text-muted-foreground">
+          Already a member?{" "}
+          <Link
+            href="/sign-in"
+            className="font-medium text-foreground underline underline-offset-4 hover:text-brand"
+          >
+            Sign in
+          </Link>
+        </p>
       </div>
     </div>
   );
-};
-export default page;
+}
+
+export default SignUpPage;

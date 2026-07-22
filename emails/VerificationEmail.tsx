@@ -37,12 +37,17 @@ export default function VerificationEmail({
       <Preview>Here&apos;s your verification code: {otp}</Preview>
       <Section>
         <Row>
+          <Text style={{ fontWeight: 700, letterSpacing: "-0.01em", fontSize: "18px", margin: "0 0 8px" }}>
+            Candor
+          </Text>
+        </Row>
+        <Row>
           <Heading as="h2">Hello {username},</Heading>
         </Row>
         <Row>
           <Text>
-            Thank you for registering. Please use the following verification
-            code to complete your registration:
+            Thank you for registering with Candor. Please use the following
+            verification code to complete your registration:
           </Text>
         </Row>
         <Row>

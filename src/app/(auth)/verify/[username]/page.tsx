@@ -15,70 +15,102 @@ import { ApiResponse } from "@/types/ApiResponse";
 import { zodResolver } from "@hookform/resolvers/zod";
 import axios, { AxiosError } from "axios";
 import { useParams, useRouter } from "next/navigation";
-import React from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import { Loader2 } from "lucide-react";
 
-const VerifyAccount = () => {
+function VerifyAccount() {
   const router = useRouter();
   const params = useParams<{ username: string }>();
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const form = useForm<z.infer<typeof verifySchema>>({
     resolver: zodResolver(verifySchema),
+    defaultValues: { code: "" },
   });
 
   const onSubmit = async (data: z.infer<typeof verifySchema>) => {
+    setIsSubmitting(true);
     try {
-      const resonse = await axios.post(`/api/verify-code`, {
+      const response = await axios.post(`/api/verify-code`, {
         username: params.username,
         code: data.code,
       });
       toast({
-        title: "success",
-        description: resonse.data.message,
+        title: "Verified",
+        description: response.data.message,
       });
       router.replace("/sign-in");
     } catch (error) {
-      console.error("Error in signup of user", error);
+      console.error("Error in verifying account", error);
       const axiosError = error as AxiosError<ApiResponse>;
-      let errorMessage = axiosError.response?.data.message;
       toast({
-        title: "Sign-up failed",
-        description: errorMessage,
+        title: "Verification failed",
+        description: axiosError.response?.data.message,
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
-      <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow-md">
-        <div className="text-center">
-          <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl mb-6">
-            Verify Your Account
+    <div className="relative flex flex-1 items-center justify-center overflow-hidden px-4 py-16">
+      <div className="pointer-events-none absolute inset-0 bg-grid" />
+      <div className="relative w-full max-w-md rounded-xl border border-border bg-card p-8 shadow-sm">
+        <div className="mb-8">
+          <span className="eyebrow">One last step</span>
+          <h1 className="mt-3 text-3xl font-bold tracking-tight">
+            Verify your account
           </h1>
-          <p className="mb-4">Enter the verification code sent to your email</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            We sent a 6-digit code to your email. Enter it below to activate{" "}
+            <span className="font-medium text-foreground">
+              @{params.username}
+            </span>
+            .
+          </p>
         </div>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
             <FormField
               name="code"
               control={form.control}
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Enter the verification code</FormLabel>
+                  <FormLabel>Verification code</FormLabel>
                   <FormControl>
-                    <Input placeholder="Verification code" {...field} />
+                    <Input
+                      className="h-12 text-center font-mono text-xl tracking-[0.5em]"
+                      placeholder="000000"
+                      inputMode="numeric"
+                      maxLength={6}
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <Button type="submit">Submit</Button>
+            <Button
+              type="submit"
+              className="h-10 w-full"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verifying…
+                </>
+              ) : (
+                "Verify account"
+              )}
+            </Button>
           </form>
         </Form>
       </div>
     </div>
   );
-};
+}
 
 export default VerifyAccount;

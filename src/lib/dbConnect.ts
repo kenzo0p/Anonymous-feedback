@@ -19,7 +19,9 @@ async function dbConnect(): Promise<void> {
   } catch (error) {
     console.log("Database connection failed", error);
 
-    process.exit(1);
+    // Don't kill the whole server process on a transient DB error;
+    // let the caller surface a 500 for this request instead.
+    throw new Error("Database connection failed");
   }
 }
 
