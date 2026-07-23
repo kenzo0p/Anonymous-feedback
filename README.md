@@ -26,7 +26,7 @@ Senders who need a nudge can generate AI-suggested prompts to break the ice.
 - 🔐 **Credentials auth** — email/username + password via NextAuth (JWT sessions)
 - ✉️ **Email verification & password reset** — 6-digit codes delivered with Resend + React Email
 - ⚙️ **Account settings** — change username (live session refresh), change password, delete account
-- 🛡️ **Abuse protection** — rate limiting on sensitive routes and a verify-code attempt cap
+- 🛡️ **Abuse protection** — rate limiting, a verify-code attempt cap, a content filter, and block-a-sender (even though senders are anonymous)
 - 🎛️ **Inbox controls** — toggle message acceptance on/off from the dashboard
 - 📥 **Paginated inbox** — messages live in their own indexed collection with "load more"
 - ✨ **AI prompt suggestions** — streamed message ideas to help senders get started
@@ -153,7 +153,8 @@ scripts/                      # Seed + migration helpers
 | `POST` | `/api/forgot-password` | Email a password-reset code (no account enumeration) |
 | `POST` | `/api/reset-password` | Reset the password with an emailed code |
 | `GET`  | `/api/check-username-unique` | Live username-availability check |
-| `POST` | `/api/send-message` | Send an anonymous message (public) |
+| `POST` | `/api/send-message` | Send an anonymous message (public; content-filtered) |
+| `POST` | `/api/block-sender` | Block a sender and purge their messages |
 | `GET`  | `/api/get-messages` | Fetch the signed-in user's messages (`?page`, `?limit`) |
 | `DELETE` | `/api/delete-message/[messageid]` | Delete a message (owner-scoped) |
 | `GET` / `POST` | `/api/accept-messages` | Read / toggle inbox acceptance |
@@ -182,6 +183,11 @@ service), and a production build.
   be brute-forced) and the user must request a new one.
 - **Owner-scoped deletes** — message deletion is scoped to the authenticated
   recipient, so users can only delete their own messages.
+- **Moderation** — incoming messages pass a content blocklist
+  (`src/lib/moderation.ts`, extendable via `BLOCKED_WORDS`). Recipients can
+  block a sender by a salted IP hash (`src/lib/hashIp.ts`) — future messages are
+  silently dropped and the sender's existing messages are purged. Raw sender IPs
+  are never stored.
 
 ## Design
 

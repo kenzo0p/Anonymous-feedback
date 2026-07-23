@@ -10,6 +10,7 @@ export interface User extends Document {
   resetPasswordCode?: string;
   resetPasswordCodeExpiry?: Date;
   resetPasswordAttempts?: number;
+  blockedSenders: string[];
   isVerified:boolean;
   isAcceptingMessages: boolean;
 }
@@ -53,6 +54,10 @@ const userSchema : Schema<User> = new Schema({
     resetPasswordAttempts : {
         type:Number,
         default:0
+    },
+    blockedSenders : {
+        type:[String],
+        default:[]
     },
     isVerified : {
         type:Boolean,

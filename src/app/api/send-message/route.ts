@@ -2,17 +2,31 @@ import UserModel from "@/model/User.model";
 import MessageModel from "@/model/Message.model";
 import dbConnect from "@/lib/dbConnect";
 import { ratelimit, getClientIp, tooManyRequests } from "@/lib/ratelimit";
+import { containsBlockedContent } from "@/lib/moderation";
+import { hashIp } from "@/lib/hashIp";
 
 export async function POST(request: Request) {
-  const { success, reset } = await ratelimit.sendMessage.limit(
-    getClientIp(request)
-  );
+  const ip = getClientIp(request);
+  const { success, reset } = await ratelimit.sendMessage.limit(ip);
   if (!success) return tooManyRequests(reset);
 
   await dbConnect();
   const { username, content } = await request.json();
   try {
-    const user = await UserModel.findOne({ username }).select("_id isAcceptingMessages");
+    // Content filter — reject obvious spam / blocked terms.
+    if (typeof content === "string" && containsBlockedContent(content)) {
+      return Response.json(
+        {
+          success: false,
+          message: "Your message couldn't be sent — it contains blocked content.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const user = await UserModel.findOne({ username }).select(
+      "_id isAcceptingMessages blockedSenders"
+    );
     if (!user) {
       return Response.json(
         { success: false, message: "User not found" },
@@ -26,7 +40,19 @@ export async function POST(request: Request) {
         { status: 403 }
       );
     }
-    await MessageModel.create({ recipient: user._id, content });
+
+    const senderIpHash = hashIp(ip);
+
+    // Shadow-drop messages from blocked senders: respond as normal so the
+    // blocked sender can't tell, but never store the message.
+    if (user.blockedSenders?.includes(senderIpHash)) {
+      return Response.json(
+        { success: true, message: "Message sent successfully" },
+        { status: 201 }
+      );
+    }
+
+    await MessageModel.create({ recipient: user._id, content, senderIpHash });
     return Response.json(
       { success: true, message: "Message sent successfully" },
       { status: 201 }

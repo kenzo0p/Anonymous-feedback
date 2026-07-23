@@ -41,12 +41,15 @@ const docs = Array.from({ length: 25 }, (_, i) => {
   return {
     recipient: insertedId,
     content: `Test message #${25 - i} — anonymous feedback sample number ${25 - i}.`,
+    // Two distinct fake senders so the block-and-purge flow is demonstrable.
+    senderIpHash: i % 2 === 0 ? "seed-sender-a" : "seed-sender-b",
     createdAt: when,
     updatedAt: when,
   };
 });
 await messages.insertMany(docs);
 await messages.createIndex({ recipient: 1, createdAt: -1 });
+await messages.createIndex({ recipient: 1, senderIpHash: 1 });
 
 console.log(
   `Seeded @${username} (login: alex@example.com / password123) with ${docs.length} messages.`

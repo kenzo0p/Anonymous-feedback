@@ -248,6 +248,7 @@ function UserDashboard() {
                 key={message._id as string}
                 message={message}
                 onMessageDelete={handleDeleteMessage}
+                onSenderBlocked={() => loadPage(1, false)}
               />
             ))}
           </div>
