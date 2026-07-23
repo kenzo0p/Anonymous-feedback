@@ -3,15 +3,19 @@ import mongoose, { Schema, Document } from "mongoose";
 export interface User extends Document {
   username: string;
   email: string;
-  password: string;
-  verifyCode: string;
-  verifyCodeExpiry: Date;
+  // Optional: OAuth (Google/GitHub) accounts have no local password or
+  // verification code — the provider vouches for the email.
+  password?: string;
+  verifyCode?: string;
+  verifyCodeExpiry?: Date;
   verifyAttempts: number;
   resetPasswordCode?: string;
   resetPasswordCodeExpiry?: Date;
   resetPasswordAttempts?: number;
   blockedSenders: string[];
   prompt: string;
+  digestEnabled: boolean;
+  lastDigestSentAt?: Date;
   isVerified:boolean;
   isAcceptingMessages: boolean;
 }
@@ -32,15 +36,12 @@ const userSchema : Schema<User> = new Schema({
     },
     password:{
         type:String,
-        required:[true , "Password is required"],
     },
     verifyCode : {
         type:String,
-        required:[true , "Veriy code is required"]
     },
     verifyCodeExpiry : {
         type:Date,
-        required : [true , "Verify code Expiry is required"]
     },
     verifyAttempts : {
         type:Number,
@@ -65,6 +66,13 @@ const userSchema : Schema<User> = new Schema({
         default:"",
         maxlength:150,
         trim:true
+    },
+    digestEnabled : {
+        type:Boolean,
+        default:true
+    },
+    lastDigestSentAt : {
+        type:Date,
     },
     isVerified : {
         type:Boolean,

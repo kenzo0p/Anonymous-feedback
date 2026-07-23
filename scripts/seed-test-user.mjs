@@ -32,6 +32,7 @@ const { insertedId } = await users.insertOne({
   verifyCodeExpiry: now,
   isVerified: true,
   isAcceptingMessages: true,
+  digestEnabled: true,
   createdAt: now,
   updatedAt: now,
 });

@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { singInSchema } from "@/schemas/signInSchema";
 import { signIn } from "next-auth/react";
+import OAuthButtons from "@/components/OAuthButtons";
 
 function SignInPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -121,6 +122,7 @@ function SignInPage() {
             </Button>
           </form>
         </Form>
+        <OAuthButtons />
         <p className="mt-4 text-center text-sm">
           <Link
             href="/forgot-password"

@@ -21,6 +21,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Check, Loader2, X } from "lucide-react";
+import OAuthButtons from "@/components/OAuthButtons";
 
 function SignUpPage() {
   const [username, setUsername] = useState("");
@@ -202,6 +203,7 @@ function SignUpPage() {
             </Button>
           </form>
         </Form>
+        <OAuthButtons />
         <p className="mt-6 text-center text-sm text-muted-foreground">
           Already a member?{" "}
           <Link

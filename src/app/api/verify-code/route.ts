@@ -31,7 +31,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const isCodeNotExpired = new Date(user.verifyCodeExpiry) > new Date();
+    const isCodeNotExpired = new Date(user.verifyCodeExpiry ?? 0) > new Date();
     if (!isCodeNotExpired) {
       return Response.json(
         {

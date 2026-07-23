@@ -37,6 +37,15 @@ export async function POST(request: Request) {
       );
     }
 
+    if (!user.password) {
+      return Response.json(
+        {
+          success: false,
+          message: "Your account uses social sign-in and has no password.",
+        },
+        { status: 400 }
+      );
+    }
     const isCurrentValid = await bcrypt.compare(currentPassword, user.password);
     if (!isCurrentValid) {
       return Response.json(

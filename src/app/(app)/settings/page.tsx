@@ -10,6 +10,7 @@ import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import {
   Form,
@@ -45,6 +46,8 @@ function SettingsPage() {
   const [deleting, setDeleting] = useState(false);
   const [prompt, setPrompt] = useState("");
   const [savingPrompt, setSavingPrompt] = useState(false);
+  const [digestEnabled, setDigestEnabled] = useState(true);
+  const [savingDigest, setSavingDigest] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -54,10 +57,35 @@ function SettingsPage() {
         if (active) setPrompt(res.data.prompt ?? "");
       })
       .catch(() => {});
+    axios
+      .get<{ digestEnabled?: boolean }>("/api/update-digest")
+      .then((res) => {
+        if (active) setDigestEnabled(res.data.digestEnabled ?? true);
+      })
+      .catch(() => {});
     return () => {
       active = false;
     };
   }, []);
+
+  const onToggleDigest = async (enabled: boolean) => {
+    setDigestEnabled(enabled); // optimistic
+    setSavingDigest(true);
+    try {
+      const res = await axios.post<ApiResponse>("/api/update-digest", {
+        enabled,
+      });
+      toast({ title: res.data.message });
+    } catch {
+      setDigestEnabled(!enabled); // revert
+      toast({
+        title: "Couldn't update preference",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingDigest(false);
+    }
+  };
 
   const usernameForm = useForm<z.infer<typeof updateUsernameSchema>>({
     resolver: zodResolver(updateUsernameSchema),
@@ -241,6 +269,22 @@ function SettingsPage() {
             </Button>
           </div>
         </div>
+      </section>
+
+      {/* Notifications */}
+      <section className="mt-4 flex items-center justify-between rounded-xl border border-border p-6">
+        <div>
+          <h2 className="text-sm font-semibold">Email digest</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Get a periodic email summarizing your new anonymous messages.
+          </p>
+        </div>
+        <Switch
+          checked={digestEnabled}
+          onCheckedChange={onToggleDigest}
+          disabled={savingDigest}
+          aria-label="Toggle email digest"
+        />
       </section>
 
       {/* Security */}

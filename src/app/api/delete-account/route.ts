@@ -32,13 +32,19 @@ export async function DELETE(request: Request) {
       );
     }
 
-    // Require the current password to confirm a destructive action.
-    const isValid = await bcrypt.compare(String(password ?? ""), user.password);
-    if (!isValid) {
-      return Response.json(
-        { success: false, message: "Password is incorrect" },
-        { status: 400 }
+    // Require the current password to confirm a destructive action. OAuth-only
+    // accounts have no password, so the authenticated session is the proof.
+    if (user.password) {
+      const isValid = await bcrypt.compare(
+        String(password ?? ""),
+        user.password
       );
+      if (!isValid) {
+        return Response.json(
+          { success: false, message: "Password is incorrect" },
+          { status: 400 }
+        );
+      }
     }
 
     await MessageModel.deleteMany({ recipient: user._id });

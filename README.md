@@ -34,6 +34,7 @@ Senders who need a nudge can generate AI-suggested prompts to break the ice.
 - 🔎 **Search & sort** — filter your inbox by content and order newest/oldest first
 - 📊 **Overview** — message stats (total, last 7 days, today) with a 14-day trend chart
 - ⬇️ **Export** — download your inbox as CSV (or JSON)
+- 📧 **Email digest** — optional periodic email summarizing new messages (opt-out in settings)
 - ✨ **AI prompt suggestions** — streamed message ideas to help senders get started
 - 🌗 **Light & dark themes** — an editorial, minimal-mono design system with a flicker-free theme toggle
 - ✅ **Type-safe & validated** — end-to-end TypeScript with Zod schemas on every form and route
@@ -163,6 +164,8 @@ scripts/                      # Seed + migration helpers
 | `GET`  | `/api/get-messages` | Fetch the signed-in user's messages (`?page`, `?limit`, `?q`, `?sort`) |
 | `GET`  | `/api/stats` | Inbox stats + 14-day daily series |
 | `GET`  | `/api/export` | Download messages (`?format=csv\|json`) |
+| `GET` / `POST` | `/api/update-digest` | Read / toggle the email-digest preference |
+| `GET`  | `/api/cron/send-digests` | Cron: email digests (Bearer `CRON_SECRET`) |
 | `DELETE` | `/api/delete-message/[messageid]` | Delete a message (owner-scoped) |
 | `GET` / `POST` | `/api/accept-messages` | Read / toggle inbox acceptance |
 | `POST` | `/api/change-password` | Change password (requires current password) |

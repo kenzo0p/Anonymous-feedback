@@ -18,6 +18,9 @@ vi.mock("@/helpers/sendVerificationEmail", () => ({
 vi.mock("@/helpers/sendResetPasswordEmail", () => ({
   sendResetPasswordEmail: vi.fn().mockResolvedValue({ success: true, message: "sent" }),
 }));
+vi.mock("@/helpers/sendDigestEmail", () => ({
+  sendDigestEmail: vi.fn().mockResolvedValue({ success: true, message: "sent" }),
+}));
 
 import { getServerSession } from "next-auth";
 import UserModel from "@/model/User.model";
@@ -34,6 +37,13 @@ import { POST as forgotPassword } from "@/app/api/forgot-password/route";
 import { POST as resetPassword } from "@/app/api/reset-password/route";
 import { GET as getStats } from "@/app/api/stats/route";
 import { GET as exportMessages } from "@/app/api/export/route";
+import { authOptions } from "@/app/api/auth/[...nextauth]/options";
+import { GET as sendDigests } from "@/app/api/cron/send-digests/route";
+import { sendDigestEmail } from "@/helpers/sendDigestEmail";
+
+type SignInArg = Parameters<
+  NonNullable<NonNullable<typeof authOptions.callbacks>["signIn"]>
+>[0];
 
 const uri = process.env.MONGODB_URI;
 const mockedSession = getServerSession as unknown as Mock;
@@ -115,7 +125,7 @@ describe.skipIf(!uri)("API routes (integration)", () => {
     );
     expect(capped.status).toBe(429);
     const after = await UserModel.findById(user._id);
-    expect(new Date(after!.verifyCodeExpiry).getTime()).toBe(0); // invalidated
+    expect(new Date(after!.verifyCodeExpiry!).getTime()).toBe(0); // invalidated
   });
 
   it("verify-code verifies with the correct code", async () => {
@@ -125,6 +135,49 @@ describe.skipIf(!uri)("API routes (integration)", () => {
     );
     expect(res.status).toBe(200);
     expect((await UserModel.findById(user._id))!.isVerified).toBe(true);
+  });
+
+  // --- OAuth upsert ----------------------------------------------------------
+  it("OAuth signIn upserts a verified, passwordless user once", async () => {
+    const email = `oauth_${uniq()}@rt.test`;
+    const arg = {
+      user: { id: "g1", email, name: "OAuth Person" },
+      account: { provider: "google", type: "oauth", providerAccountId: "g1" },
+    } as unknown as SignInArg;
+
+    const ok = await authOptions.callbacks!.signIn!(arg);
+    expect(ok).toBe(true);
+
+    const created = await UserModel.findOne({ email });
+    expect(created).toBeTruthy();
+    createdUserIds.push(created!._id as mongoose.Types.ObjectId);
+    expect(created!.isVerified).toBe(true);
+    expect(created!.username).toMatch(/^[a-z0-9]{2,20}$/);
+    expect(created!.password).toBeFalsy(); // no local password
+
+    // A second sign-in with the same email must not duplicate the account.
+    await authOptions.callbacks!.signIn!(arg);
+    expect(await UserModel.countDocuments({ email })).toBe(1);
+  });
+
+  it("credentials sign-in is rejected for a passwordless (OAuth) account", async () => {
+    const user = await makeUser({ password: undefined });
+    // NextAuth's top-level `authorize` is a no-op; the real one is on `options`.
+    const credProvider = authOptions.providers.find(
+      (p) => p.id === "credentials"
+    ) as unknown as {
+      options: { authorize: (c: Record<string, string>) => Promise<unknown> };
+    };
+    let error: unknown;
+    try {
+      await credProvider.options.authorize({
+        identifier: user.email,
+        password: "whatever",
+      });
+    } catch (e) {
+      error = e;
+    }
+    expect((error as Error | undefined)?.message).toMatch(/social sign-in/i);
   });
 
   // --- send-message (moderation) --------------------------------------------
@@ -332,6 +385,58 @@ describe.skipIf(!uri)("API routes (integration)", () => {
     expect(parsed[0]).toHaveProperty("receivedAt");
   });
 
+  // --- digest cron -----------------------------------------------------------
+  it("digest cron requires the CRON_SECRET", async () => {
+    process.env.CRON_SECRET = "test-cron";
+    const noAuth = await sendDigests(new Request("http://localhost/api/cron"));
+    expect(noAuth.status).toBe(401);
+    const badAuth = await sendDigests(
+      new Request("http://localhost/api/cron", {
+        headers: { authorization: "Bearer wrong" },
+      })
+    );
+    expect(badAuth.status).toBe(401);
+  });
+
+  it("digest cron emails users with new messages and records the send", async () => {
+    process.env.CRON_SECRET = "test-cron";
+    (sendDigestEmail as unknown as ReturnType<typeof vi.fn>).mockClear();
+
+    // Isolate: disable digests for every pre-existing user, then create fresh
+    // fixtures (which default to digestEnabled) so only they are eligible.
+    await UserModel.updateMany({}, { $set: { digestEnabled: false } });
+
+    const withNew = await makeUser();
+    await MessageModel.create({ recipient: withNew._id, content: "new one" });
+
+    const noNew = await makeUser(); // verified, digestEnabled, but no messages
+
+    const optedOut = await makeUser({ digestEnabled: false });
+    await MessageModel.create({ recipient: optedOut._id, content: "ignored" });
+
+    const res = await sendDigests(
+      new Request("http://localhost/api/cron", {
+        headers: { authorization: "Bearer test-cron" },
+      })
+    );
+    const body = await res.json();
+    expect(res.status).toBe(200);
+    expect(body.sent).toBe(1); // only the user with new messages
+    expect(sendDigestEmail).toHaveBeenCalledTimes(1);
+
+    // The sent user now has a lastDigestSentAt; the others don't.
+    expect((await UserModel.findById(withNew._id))!.lastDigestSentAt).toBeTruthy();
+    expect((await UserModel.findById(noNew._id))!.lastDigestSentAt).toBeFalsy();
+
+    // A second run sends nothing new (no messages since last digest).
+    const res2 = await sendDigests(
+      new Request("http://localhost/api/cron", {
+        headers: { authorization: "Bearer test-cron" },
+      })
+    );
+    expect((await res2.json()).sent).toBe(0);
+  });
+
   // --- forgot / reset password ----------------------------------------------
   it("forgot-password returns a generic response for unknown emails", async () => {
     const res = await forgotPassword(postReq({ email: "nobody@rt.test" }));
@@ -357,7 +462,7 @@ describe.skipIf(!uri)("API routes (integration)", () => {
     expect(ok.status).toBe(200);
 
     const after = await UserModel.findById(user._id);
-    expect(await bcrypt.compare("newpass123", after!.password)).toBe(true);
+    expect(await bcrypt.compare("newpass123", after!.password!)).toBe(true);
     expect(after!.resetPasswordCode).toBeFalsy(); // cleared
   });
 });
