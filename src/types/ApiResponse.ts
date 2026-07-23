@@ -1,9 +1,11 @@
-import { Message } from "@/model/User.model";
-
+import { Message } from "@/model/Message.model";
 
 export interface ApiResponse {
     success : boolean;
     message:string;
     isAcceptingMessages?:boolean;
-    messages?:Array<Message>
+    messages?:Array<Message>;
+    total?:number;
+    page?:number;
+    hasMore?:boolean;
 }

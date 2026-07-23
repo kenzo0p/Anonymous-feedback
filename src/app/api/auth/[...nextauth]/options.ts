@@ -3,6 +3,7 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import dbConnect from '@/lib/dbConnect';
 import UserModel from '@/model/User.model';
+import { ratelimit } from '@/lib/ratelimit';
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -16,10 +17,18 @@ export const authOptions: NextAuthOptions = {
       async authorize(
         credentials: Record<string, string> | undefined
       ): Promise<User | null> {
-        await dbConnect();
         if (!credentials?.identifier || !credentials?.password) {
           throw new Error('Missing email/username or password');
         }
+        // Throttle sign-in attempts per targeted account to blunt credential
+        // stuffing / password brute force.
+        const { success } = await ratelimit.auth.limit(
+          `auth:${credentials.identifier.toLowerCase()}`
+        );
+        if (!success) {
+          throw new Error('Too many attempts. Please try again in a minute.');
+        }
+        await dbConnect();
         try {
           const user = await UserModel.findOne({
             $or: [
@@ -59,12 +68,20 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token._id = user._id?.toString(); // Convert ObjectId to string
         token.isVerified = user.isVerified;
         token.isAcceptingMessages = user.isAcceptingMessages;
         token.username = user.username;
+        token.email = user.email;
+      }
+      // Allow the client to refresh mutable fields (e.g. after a username
+      // change) via `useSession().update({ username })`.
+      if (trigger === 'update' && session) {
+        if (typeof session.username === 'string') {
+          token.username = session.username;
+        }
       }
       return token;
     },
@@ -74,6 +91,7 @@ export const authOptions: NextAuthOptions = {
         session.user.isVerified = token.isVerified;
         session.user.isAcceptingMessages = token.isAcceptingMessages;
         session.user.username = token.username;
+        session.user.email = token.email;
       }
       return session;
     },

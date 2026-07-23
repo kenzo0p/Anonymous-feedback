@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    services:
+      mongo:
+        image: mongo:7
+        ports:
+          - 27017:27017
+
+    env:
+      # Real DB for the integration tests; dummies satisfy build-time env reads.
+      MONGODB_URI: mongodb://127.0.0.1:27017/candor_test
+      NEXTAUTH_SECRET: ci-dummy-secret
+      NEXTAUTH_URL: http://localhost:3000
+      RESEND_API_KEY: re_ci_dummy
+      OPENAI_API_KEY: sk-ci-dummy
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build

@@ -3,9 +3,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import Link from "next/link";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import axios, { AxiosError } from "axios";
+import { ApiResponse } from "@/types/ApiResponse";
 import {
   Form,
   FormControl,
@@ -17,43 +19,42 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
-import { singInSchema } from "@/schemas/signInSchema";
-import { signIn } from "next-auth/react";
+import { resetPasswordSchema } from "@/schemas/resetPasswordSchema";
 
-function SignInPage() {
+function ResetPasswordForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
-  const form = useForm<z.infer<typeof singInSchema>>({
-    resolver: zodResolver(singInSchema),
+  const form = useForm<z.infer<typeof resetPasswordSchema>>({
+    resolver: zodResolver(resetPasswordSchema),
     defaultValues: {
-      identifier: "",
+      email: searchParams.get("email") ?? "",
+      code: "",
       password: "",
     },
   });
 
-  const onSubmit = async (data: z.infer<typeof singInSchema>) => {
+  const onSubmit = async (data: z.infer<typeof resetPasswordSchema>) => {
     setIsSubmitting(true);
-    const result = await signIn("credentials", {
-      redirect: false,
-      identifier: data.identifier,
-      password: data.password,
-    });
-    if (result?.error) {
+    try {
+      const response = await axios.post<ApiResponse>(
+        "/api/reset-password",
+        data
+      );
+      toast({ title: "Password reset", description: response.data.message });
+      router.replace("/sign-in");
+    } catch (error) {
+      const axiosError = error as AxiosError<ApiResponse>;
       toast({
-        title: "Sign-in failed",
-        description: "Incorrect username or password",
+        title: "Reset failed",
+        description: axiosError.response?.data.message ?? "Please try again.",
         variant: "destructive",
       });
-    } else if (result?.ok) {
-      toast({
-        title: "Signed in",
-        description: "Welcome back.",
-      });
-      router.replace("/dashboard");
+    } finally {
+      setIsSubmitting(false);
     }
-    setIsSubmitting(false);
   };
 
   return (
@@ -61,22 +62,22 @@ function SignInPage() {
       <div className="pointer-events-none absolute inset-0 bg-grid" />
       <div className="relative w-full max-w-md rounded-xl border border-border bg-card p-8 shadow-sm">
         <div className="mb-8">
-          <span className="eyebrow">Welcome back</span>
+          <span className="eyebrow">Reset password</span>
           <h1 className="mt-3 text-3xl font-bold tracking-tight">
-            Sign in
+            Choose a new password
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Access your dashboard and read your messages.
+            Enter the code from your email and a new password.
           </p>
         </div>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
             <FormField
-              name="identifier"
+              name="email"
               control={form.control}
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email or username</FormLabel>
+                  <FormLabel>Email</FormLabel>
                   <FormControl>
                     <Input
                       className="h-10"
@@ -89,15 +90,34 @@ function SignInPage() {
               )}
             />
             <FormField
+              name="code"
+              control={form.control}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Reset code</FormLabel>
+                  <FormControl>
+                    <Input
+                      className="h-12 text-center font-mono text-xl tracking-[0.5em]"
+                      placeholder="000000"
+                      inputMode="numeric"
+                      maxLength={6}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
               name="password"
               control={form.control}
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Password</FormLabel>
+                  <FormLabel>New password</FormLabel>
                   <FormControl>
                     <Input
                       className="h-10"
-                      placeholder="Your password"
+                      placeholder="At least 6 characters"
                       type="password"
                       {...field}
                     />
@@ -113,29 +133,21 @@ function SignInPage() {
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Signing in…
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Resetting…
                 </>
               ) : (
-                "Sign in"
+                "Reset password"
               )}
             </Button>
           </form>
         </Form>
-        <p className="mt-4 text-center text-sm">
+        <p className="mt-6 text-center text-sm text-muted-foreground">
+          Didn&apos;t get a code?{" "}
           <Link
             href="/forgot-password"
-            className="text-muted-foreground underline underline-offset-4 hover:text-foreground"
-          >
-            Forgot your password?
-          </Link>
-        </p>
-        <p className="mt-4 text-center text-sm text-muted-foreground">
-          Don&apos;t have an account?{" "}
-          <Link
-            href="/sign-up"
             className="font-medium text-foreground underline underline-offset-4 hover:text-brand"
           >
-            Sign up
+            Request a new one
           </Link>
         </p>
       </div>
@@ -143,4 +155,10 @@ function SignInPage() {
   );
 }
 
-export default SignInPage;
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={null}>
+      <ResetPasswordForm />
+    </Suspense>
+  );
+}

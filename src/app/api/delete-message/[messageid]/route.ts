@@ -1,30 +1,30 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../auth/[...nextauth]/options";
-import UserModel from "@/model/User.model";
+import MessageModel from "@/model/Message.model";
 import dbConnect from "@/lib/dbConnect";
 import { User } from "next-auth";
 
-
 export async function DELETE(
   request: Request,
-  { params }: { params: { messageid: string } }
+  { params }: { params: Promise<{ messageid: string }> }
 ) {
-  const messageId = params.messageid;
+  const { messageid: messageId } = await params;
   await dbConnect();
   const session = await getServerSession(authOptions);
   const _user: User = session?.user;
-  if (!session || !_user) {
+  if (!session || !_user?._id) {
     return Response.json(
-      { success: false, message: "User is not autheticated" },
-      { status: 400 }
+      { success: false, message: "Not authenticated" },
+      { status: 401 }
     );
   }
   try {
-    const updateResult = await UserModel.updateOne(
-      { _id: _user._id },
-      { $pull: { messages: { _id: messageId } } }
-    );
-    if (updateResult.modifiedCount == 0) {
+    // Scope the delete to the owner so a user can only delete their own messages.
+    const result = await MessageModel.deleteOne({
+      _id: messageId,
+      recipient: _user._id,
+    });
+    if (result.deletedCount === 0) {
       return Response.json(
         { success: false, message: "Message not found or already deleted" },
         { status: 404 }
@@ -35,7 +35,7 @@ export async function DELETE(
       { status: 200 }
     );
   } catch (error) {
-    console.log("error in delete messge route", error);
+    console.error("Error in delete message route", error);
     return Response.json(
       { success: false, message: "Error in deleting message" },
       { status: 500 }

@@ -1,56 +1,55 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]/options";
-import UserModel from "@/model/User.model";
+import MessageModel from "@/model/Message.model";
 import dbConnect from "@/lib/dbConnect";
 import { User } from "next-auth";
-import mongoose from "mongoose";
 
-export async function GET() {
+const DEFAULT_LIMIT = 20;
+const MAX_LIMIT = 50;
+
+export async function GET(request: Request) {
   await dbConnect();
   const session = await getServerSession(authOptions);
   const _user: User = session?.user;
-  if (!session || !_user) {
+  if (!session || !_user?._id) {
     return Response.json(
-      { success: false, message: "User is not autheticated" },
-      { status: 400 }
+      { success: false, message: "Not authenticated" },
+      { status: 401 }
     );
   }
-  const userId = new mongoose.Types.ObjectId(_user._id);
-  if (!userId) {
-    return Response.json(
-      { success: false, message: "User ID is not provided" },
-      { status: 400 }
-    );
-  }
-  try {
-    const user = await UserModel.aggregate([
-      {
-        $match: { _id: userId },
-      },
-      {
-        $unwind: '$messages',
-      },
-      {
-        $sort: { 'messages.createdAt': -1 },
-      },
-      { $group: { _id: '$_id', messages: { $push: '$messages' } } },
-    ]).exec();
-    console.log("AGGREGATE RESULT:", user);
 
-    if (!user || user.length === 0) {
-      return Response.json(
-        { success: false, message: "no messages found" },
-        { status: 404 }
-      );
-    }
+  const { searchParams } = new URL(request.url);
+  const page = Math.max(1, Number(searchParams.get("page")) || 1);
+  const limit = Math.min(
+    MAX_LIMIT,
+    Math.max(1, Number(searchParams.get("limit")) || DEFAULT_LIMIT)
+  );
+
+  try {
+    const filter = { recipient: _user._id };
+    const [messages, total] = await Promise.all([
+      MessageModel.find(filter)
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean(),
+      MessageModel.countDocuments(filter),
+    ]);
+
     return Response.json(
-      { success: true, messages: user[0].messages},
-      { status: 200, }
+      {
+        success: true,
+        messages,
+        total,
+        page,
+        hasMore: page * limit < total,
+      },
+      { status: 200 }
     );
   } catch (error) {
-    console.log("An unexpected error occured:", error);
+    console.error("Error fetching messages:", error);
     return Response.json(
-      { success: false, message: "not authenticated" },
+      { success: false, message: "Failed to fetch messages" },
       { status: 500 }
     );
   }

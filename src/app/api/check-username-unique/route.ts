@@ -2,18 +2,16 @@ import UserModel from "@/model/User.model";
 import dbConnect from "@/lib/dbConnect";
 import { z } from "zod";
 import { usernameValidation } from "@/schemas/signUpSchema";
+import { ratelimit, getClientIp, tooManyRequests } from "@/lib/ratelimit";
 
 const usernameQuerySchema = z.object({
   username: usernameValidation,
 });
 
 export async function GET(request: Request) {
-    // todo :use this is all other routes now in newer versions of next there no need to check it next js did this for us
-    // if(request.method !== 'GET'){
-    //     return Response.json({success:false , message:"Method not allowed"} , {status:405})
-    // }
+    const rl = await ratelimit.usernameCheck.limit(getClientIp(request));
+    if (!rl.success) return tooManyRequests(rl.reset);
 
-    
     await dbConnect();
 
   // localhost:3000/api/check-?username=om

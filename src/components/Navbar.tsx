@@ -6,6 +6,7 @@ import { User } from "next-auth";
 import { Button } from "./ui/button";
 import ThemeToggle from "./ThemeToggle";
 import { Logo } from "./Logo";
+import { Settings } from "lucide-react";
 
 function Navbar() {
   const { data: session } = useSession();
@@ -22,9 +23,19 @@ function Navbar() {
           <ThemeToggle />
           {session ? (
             <>
-              <span className="hidden text-sm text-muted-foreground sm:inline">
+              <Link
+                href="/settings"
+                className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground sm:inline"
+              >
                 @{user?.username || user?.email}
-              </span>
+              </Link>
+              <Link
+                href="/settings"
+                aria-label="Settings"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border text-foreground/70 transition-colors hover:bg-accent hover:text-foreground"
+              >
+                <Settings className="h-4 w-4" />
+              </Link>
               <Button size="sm" variant="outline" onClick={() => signOut()}>
                 Sign out
               </Button>

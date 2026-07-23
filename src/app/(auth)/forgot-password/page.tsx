@@ -6,6 +6,8 @@ import Link from "next/link";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
+import axios, { AxiosError } from "axios";
+import { ApiResponse } from "@/types/ApiResponse";
 import {
   Form,
   FormControl,
@@ -17,43 +19,38 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
-import { singInSchema } from "@/schemas/signInSchema";
-import { signIn } from "next-auth/react";
+import { forgotPasswordSchema } from "@/schemas/forgotPasswordSchema";
 
-function SignInPage() {
+function ForgotPasswordPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
 
-  const form = useForm<z.infer<typeof singInSchema>>({
-    resolver: zodResolver(singInSchema),
-    defaultValues: {
-      identifier: "",
-      password: "",
-    },
+  const form = useForm<z.infer<typeof forgotPasswordSchema>>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: { email: "" },
   });
 
-  const onSubmit = async (data: z.infer<typeof singInSchema>) => {
+  const onSubmit = async (data: z.infer<typeof forgotPasswordSchema>) => {
     setIsSubmitting(true);
-    const result = await signIn("credentials", {
-      redirect: false,
-      identifier: data.identifier,
-      password: data.password,
-    });
-    if (result?.error) {
+    try {
+      const response = await axios.post<ApiResponse>(
+        "/api/forgot-password",
+        data
+      );
+      toast({ title: "Check your email", description: response.data.message });
+      router.push(`/reset-password?email=${encodeURIComponent(data.email)}`);
+    } catch (error) {
+      const axiosError = error as AxiosError<ApiResponse>;
       toast({
-        title: "Sign-in failed",
-        description: "Incorrect username or password",
+        title: "Something went wrong",
+        description:
+          axiosError.response?.data.message ?? "Please try again later.",
         variant: "destructive",
       });
-    } else if (result?.ok) {
-      toast({
-        title: "Signed in",
-        description: "Welcome back.",
-      });
-      router.replace("/dashboard");
+    } finally {
+      setIsSubmitting(false);
     }
-    setIsSubmitting(false);
   };
 
   return (
@@ -61,44 +58,26 @@ function SignInPage() {
       <div className="pointer-events-none absolute inset-0 bg-grid" />
       <div className="relative w-full max-w-md rounded-xl border border-border bg-card p-8 shadow-sm">
         <div className="mb-8">
-          <span className="eyebrow">Welcome back</span>
+          <span className="eyebrow">Reset password</span>
           <h1 className="mt-3 text-3xl font-bold tracking-tight">
-            Sign in
+            Forgot your password?
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Access your dashboard and read your messages.
+            Enter your email and we&apos;ll send you a 6-digit reset code.
           </p>
         </div>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
             <FormField
-              name="identifier"
+              name="email"
               control={form.control}
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email or username</FormLabel>
+                  <FormLabel>Email</FormLabel>
                   <FormControl>
                     <Input
                       className="h-10"
                       placeholder="you@example.com"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              name="password"
-              control={form.control}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Password</FormLabel>
-                  <FormControl>
-                    <Input
-                      className="h-10"
-                      placeholder="Your password"
-                      type="password"
                       {...field}
                     />
                   </FormControl>
@@ -113,29 +92,21 @@ function SignInPage() {
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Signing in…
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending…
                 </>
               ) : (
-                "Sign in"
+                "Send reset code"
               )}
             </Button>
           </form>
         </Form>
-        <p className="mt-4 text-center text-sm">
+        <p className="mt-6 text-center text-sm text-muted-foreground">
+          Remembered it?{" "}
           <Link
-            href="/forgot-password"
-            className="text-muted-foreground underline underline-offset-4 hover:text-foreground"
-          >
-            Forgot your password?
-          </Link>
-        </p>
-        <p className="mt-4 text-center text-sm text-muted-foreground">
-          Don&apos;t have an account?{" "}
-          <Link
-            href="/sign-up"
+            href="/sign-in"
             className="font-medium text-foreground underline underline-offset-4 hover:text-brand"
           >
-            Sign up
+            Back to sign in
           </Link>
         </p>
       </div>
@@ -143,4 +114,4 @@ function SignInPage() {
   );
 }
 
-export default SignInPage;
+export default ForgotPasswordPage;

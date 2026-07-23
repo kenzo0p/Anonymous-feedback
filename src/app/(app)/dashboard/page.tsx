@@ -13,22 +13,28 @@ import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { AcceptMessageSchema } from '@/schemas/acceptMessageSchema';
 import { useToast } from '@/hooks/use-toast';
-import { Message } from '@/model/User.model';
+import { Message } from '@/model/Message.model';
 import MessageCard from '@/components/MessageCard';
+
+const PAGE_SIZE = 20;
 
 function UserDashboard() {
   const [messages, setMessages] = useState<Message[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isSwitchLoading, setIsSwitchLoading] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const { toast } = useToast();
+  const { data: session } = useSession();
 
   const handleDeleteMessage = (messageId: string) => {
-    setMessages(messages.filter((message) => message._id !== messageId));
+    setMessages((prev) => prev.filter((message) => message._id !== messageId));
+    setTotal((t) => Math.max(0, t - 1));
   };
-
-  const { data: session } = useSession();
 
   const form = useForm({
     resolver: zodResolver(AcceptMessageSchema),
@@ -56,19 +62,19 @@ function UserDashboard() {
     }
   }, [setValue, toast]);
 
-  const fetchMessages = useCallback(
-    async (refresh: boolean = false) => {
-      setIsLoading(true);
-      setIsSwitchLoading(false);
+  const loadPage = useCallback(
+    async (pageToLoad: number, append: boolean) => {
+      if (append) setIsLoadingMore(true);
+      else setIsLoading(true);
       try {
-        const response = await axios.get<ApiResponse>('/api/get-messages');
-        setMessages(response.data.messages || []);
-        if (refresh) {
-          toast({
-            title: 'Refreshed',
-            description: 'Showing your latest messages.',
-          });
-        }
+        const response = await axios.get<ApiResponse>(
+          `/api/get-messages?page=${pageToLoad}&limit=${PAGE_SIZE}`
+        );
+        const incoming = response.data.messages || [];
+        setMessages((prev) => (append ? [...prev, ...incoming] : incoming));
+        setTotal(response.data.total ?? incoming.length);
+        setHasMore(Boolean(response.data.hasMore));
+        setPage(pageToLoad);
       } catch (error) {
         const axiosError = error as AxiosError<ApiResponse>;
         toast({
@@ -79,17 +85,22 @@ function UserDashboard() {
         });
       } finally {
         setIsLoading(false);
-        setIsSwitchLoading(false);
+        setIsLoadingMore(false);
       }
     },
-    [setIsLoading, setMessages, toast]
+    [toast]
   );
+
+  const refresh = useCallback(async () => {
+    await loadPage(1, false);
+    toast({ title: 'Refreshed', description: 'Showing your latest messages.' });
+  }, [loadPage, toast]);
 
   useEffect(() => {
     if (!session || !session.user) return;
-    fetchMessages();
+    loadPage(1, false);
     fetchAcceptMessages();
-  }, [session, setValue, toast, fetchAcceptMessages, fetchMessages]);
+  }, [session, loadPage, fetchAcceptMessages]);
 
   const handleSwitchChange = async () => {
     try {
@@ -203,7 +214,7 @@ function UserDashboard() {
         <div className="flex items-baseline gap-3">
           <h2 className="text-xl font-semibold tracking-tight">Messages</h2>
           <span className="font-mono text-sm text-muted-foreground">
-            {messages.length}
+            {total}
           </span>
         </div>
         <Button
@@ -212,8 +223,9 @@ function UserDashboard() {
           className="gap-2"
           onClick={(e) => {
             e.preventDefault();
-            fetchMessages(true);
+            refresh();
           }}
+          disabled={isLoading}
         >
           {isLoading ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -224,16 +236,35 @@ function UserDashboard() {
         </Button>
       </div>
 
-      {messages.length > 0 ? (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          {messages.map((message) => (
-            <MessageCard
-              key={message._id as string}
-              message={message}
-              onMessageDelete={handleDeleteMessage}
-            />
-          ))}
+      {isLoading && messages.length === 0 ? (
+        <div className="flex items-center justify-center rounded-xl border border-dashed border-border py-16 text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin" />
         </div>
+      ) : messages.length > 0 ? (
+        <>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {messages.map((message) => (
+              <MessageCard
+                key={message._id as string}
+                message={message}
+                onMessageDelete={handleDeleteMessage}
+              />
+            ))}
+          </div>
+          {hasMore && (
+            <div className="mt-6 flex justify-center">
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={() => loadPage(page + 1, true)}
+                disabled={isLoadingMore}
+              >
+                {isLoadingMore && <Loader2 className="h-4 w-4 animate-spin" />}
+                Load more
+              </Button>
+            </div>
+          )}
+        </>
       ) : (
         <div className="rounded-xl border border-dashed border-border py-16 text-center">
           <p className="text-sm font-medium">No messages yet</p>

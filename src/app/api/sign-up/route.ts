@@ -2,8 +2,12 @@ import { sendVerificationEmail } from "@/helpers/sendVerificationEmail";
 import dbConnect from "@/lib/dbConnect";
 import UserModel from "@/model/User.model";
 import bcrypt from "bcryptjs";
+import { ratelimit, getClientIp, tooManyRequests } from "@/lib/ratelimit";
 
 export async function POST(request: Request) {
+  const { success, reset } = await ratelimit.signup.limit(getClientIp(request));
+  if (!success) return tooManyRequests(reset);
+
   await dbConnect();
   try {
     const { username, email, password } = await request.json();
@@ -34,6 +38,7 @@ export async function POST(request: Request) {
         existingUserByEmail.password = hashedPassword;
         existingUserByEmail.verifyCode = verifyCode;
         existingUserByEmail.verifyCodeExpiry = new Date(Date.now() + 3600000);
+        existingUserByEmail.verifyAttempts = 0;
         await existingUserByEmail.save();
       }
     } else {
@@ -49,7 +54,6 @@ export async function POST(request: Request) {
         password: hashedPassword,
         isVerified: false,
         isAcceptingMessages: true,
-        messages: [],
       });
       await newUser.save();
     }
