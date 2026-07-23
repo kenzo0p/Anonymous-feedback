@@ -32,6 +32,8 @@ import { DELETE as deleteMessage } from "@/app/api/delete-message/[messageid]/ro
 import { POST as blockSender } from "@/app/api/block-sender/route";
 import { POST as forgotPassword } from "@/app/api/forgot-password/route";
 import { POST as resetPassword } from "@/app/api/reset-password/route";
+import { GET as getStats } from "@/app/api/stats/route";
+import { GET as exportMessages } from "@/app/api/export/route";
 
 const uri = process.env.MONGODB_URI;
 const mockedSession = getServerSession as unknown as Mock;
@@ -194,6 +196,37 @@ describe.skipIf(!uri)("API routes (integration)", () => {
     expect(body.hasMore).toBe(true);
   });
 
+  it("get-messages supports search and sort", async () => {
+    const user = await makeUser();
+    const base = Date.now();
+    await MessageModel.insertMany([
+      { recipient: user._id, content: "apple pie", createdAt: new Date(base - 3000) },
+      { recipient: user._id, content: "banana bread", createdAt: new Date(base - 2000) },
+      { recipient: user._id, content: "cherry cake", createdAt: new Date(base - 1000) },
+    ]);
+    asSession(user);
+
+    // search
+    const search = await getMessages(
+      new Request("http://localhost/api/get-messages?q=banana")
+    );
+    const searchBody = await search.json();
+    expect(searchBody.total).toBe(1);
+    expect(searchBody.messages[0].content).toBe("banana bread");
+
+    // search is case-insensitive
+    const ci = await getMessages(
+      new Request("http://localhost/api/get-messages?q=CHERRY")
+    );
+    expect((await ci.json()).total).toBe(1);
+
+    // sort oldest-first
+    const oldest = await getMessages(
+      new Request("http://localhost/api/get-messages?sort=oldest")
+    );
+    expect((await oldest.json()).messages[0].content).toBe("apple pie");
+  });
+
   // --- delete-message (ownership) -------------------------------------------
   it("delete-message is scoped to the owner", async () => {
     const owner = await makeUser();
@@ -241,6 +274,62 @@ describe.skipIf(!uri)("API routes (integration)", () => {
     expect(await MessageModel.countDocuments({ recipient: user._id })).toBe(1);
     const after = await UserModel.findById(user._id);
     expect(after!.blockedSenders).toContain(hash);
+  });
+
+  // --- stats -----------------------------------------------------------------
+  it("stats returns totals and a 14-day daily series", async () => {
+    mockedSession.mockResolvedValue(null);
+    expect((await getStats()).status).toBe(401);
+
+    const user = await makeUser();
+    const now = Date.now();
+    await MessageModel.insertMany([
+      { recipient: user._id, content: "today one", createdAt: new Date(now) },
+      { recipient: user._id, content: "today two", createdAt: new Date(now) },
+      {
+        recipient: user._id,
+        content: "old",
+        createdAt: new Date(now - 40 * 24 * 3600 * 1000), // outside the window
+      },
+    ]);
+
+    asSession(user);
+    const res = await getStats();
+    const body = await res.json();
+    expect(res.status).toBe(200);
+    expect(body.total).toBe(3); // total counts everything
+    expect(body.today).toBe(2); // only the two from today
+    expect(body.last7).toBe(2);
+    expect(body.daily).toHaveLength(14);
+  });
+
+  // --- export ----------------------------------------------------------------
+  it("export returns CSV (escaped) and JSON", async () => {
+    const user = await makeUser();
+    await MessageModel.insertMany([
+      { recipient: user._id, content: 'has "quotes", and, commas' },
+      { recipient: user._id, content: "plain message" },
+    ]);
+    asSession(user);
+
+    const csvRes = await exportMessages(
+      new Request("http://localhost/api/export?format=csv")
+    );
+    expect(csvRes.headers.get("Content-Type")).toContain("text/csv");
+    expect(csvRes.headers.get("Content-Disposition")).toContain(".csv");
+    const csv = await csvRes.text();
+    expect(csv).toContain("Received,Message");
+    // A field with quotes/commas must be wrapped and its quotes doubled.
+    expect(csv).toContain('"has ""quotes"", and, commas"');
+
+    const jsonRes = await exportMessages(
+      new Request("http://localhost/api/export?format=json")
+    );
+    expect(jsonRes.headers.get("Content-Type")).toContain("application/json");
+    const parsed = JSON.parse(await jsonRes.text());
+    expect(parsed).toHaveLength(2);
+    expect(parsed[0]).toHaveProperty("content");
+    expect(parsed[0]).toHaveProperty("receivedAt");
   });
 
   // --- forgot / reset password ----------------------------------------------

@@ -6,7 +6,7 @@ import { Switch } from '@/components/ui/switch';
 import { ApiResponse } from '@/types/ApiResponse';
 import { zodResolver } from '@hookform/resolvers/zod';
 import axios, { AxiosError } from 'axios';
-import { Check, Copy, Loader2, RefreshCcw } from 'lucide-react';
+import { Download, Loader2, RefreshCcw, Search } from 'lucide-react';
 import { User } from 'next-auth';
 import { useSession } from 'next-auth/react';
 import { useCallback, useEffect, useState } from 'react';
@@ -15,6 +15,8 @@ import { AcceptMessageSchema } from '@/schemas/acceptMessageSchema';
 import { useToast } from '@/hooks/use-toast';
 import { Message } from '@/model/Message.model';
 import MessageCard from '@/components/MessageCard';
+import ShareProfile from '@/components/ShareProfile';
+import InboxStats from '@/components/InboxStats';
 
 const PAGE_SIZE = 20;
 
@@ -26,14 +28,25 @@ function UserDashboard() {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isSwitchLoading, setIsSwitchLoading] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [query, setQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [sort, setSort] = useState<'newest' | 'oldest'>('newest');
+  const [statsKey, setStatsKey] = useState(0);
+  const bumpStats = useCallback(() => setStatsKey((k) => k + 1), []);
 
   const { toast } = useToast();
   const { data: session } = useSession();
 
+  // Debounce the search box so we don't fire a request per keystroke.
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQuery(query.trim()), 300);
+    return () => clearTimeout(t);
+  }, [query]);
+
   const handleDeleteMessage = (messageId: string) => {
     setMessages((prev) => prev.filter((message) => message._id !== messageId));
     setTotal((t) => Math.max(0, t - 1));
+    bumpStats();
   };
 
   const form = useForm({
@@ -67,8 +80,14 @@ function UserDashboard() {
       if (append) setIsLoadingMore(true);
       else setIsLoading(true);
       try {
+        const params = new URLSearchParams({
+          page: String(pageToLoad),
+          limit: String(PAGE_SIZE),
+        });
+        if (debouncedQuery) params.set('q', debouncedQuery);
+        if (sort === 'oldest') params.set('sort', 'oldest');
         const response = await axios.get<ApiResponse>(
-          `/api/get-messages?page=${pageToLoad}&limit=${PAGE_SIZE}`
+          `/api/get-messages?${params.toString()}`
         );
         const incoming = response.data.messages || [];
         setMessages((prev) => (append ? [...prev, ...incoming] : incoming));
@@ -88,19 +107,26 @@ function UserDashboard() {
         setIsLoadingMore(false);
       }
     },
-    [toast]
+    [toast, debouncedQuery, sort]
   );
 
   const refresh = useCallback(async () => {
     await loadPage(1, false);
+    bumpStats();
     toast({ title: 'Refreshed', description: 'Showing your latest messages.' });
-  }, [loadPage, toast]);
+  }, [loadPage, toast, bumpStats]);
 
+  // Fetch the accept-messages setting once when the session is ready.
+  useEffect(() => {
+    if (!session || !session.user) return;
+    fetchAcceptMessages();
+  }, [session, fetchAcceptMessages]);
+
+  // (Re)load page 1 whenever the session, search query, or sort changes.
   useEffect(() => {
     if (!session || !session.user) return;
     loadPage(1, false);
-    fetchAcceptMessages();
-  }, [session, loadPage, fetchAcceptMessages]);
+  }, [session, loadPage]);
 
   const handleSwitchChange = async () => {
     try {
@@ -142,14 +168,10 @@ function UserDashboard() {
   const baseUrl = `${window.location.protocol}//${window.location.host}`;
   const profileUrl = `${baseUrl}/u/${username}`;
 
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(profileUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-    toast({
-      title: 'Link copied',
-      description: 'Your profile URL is on the clipboard.',
-    });
+  const exportMessages = () => {
+    const a = document.createElement('a');
+    a.href = '/api/export?format=csv';
+    a.click();
   };
 
   return (
@@ -162,32 +184,8 @@ function UserDashboard() {
         </h1>
       </div>
 
-      {/* Share link */}
-      <div className="rounded-xl border border-border p-6">
-        <h2 className="text-sm font-semibold">Your public link</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Share this anywhere to start receiving anonymous messages.
-        </p>
-        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-          <input
-            type="text"
-            value={profileUrl}
-            readOnly
-            className="h-10 w-full flex-1 rounded-md border border-input bg-muted/50 px-3 font-mono text-sm text-muted-foreground focus:outline-none"
-          />
-          <Button onClick={copyToClipboard} className="h-10 gap-2 sm:w-32">
-            {copied ? (
-              <>
-                <Check className="h-4 w-4" /> Copied
-              </>
-            ) : (
-              <>
-                <Copy className="h-4 w-4" /> Copy
-              </>
-            )}
-          </Button>
-        </div>
-      </div>
+      {/* Share link + QR */}
+      <ShareProfile url={profileUrl} username={username ?? ""} />
 
       {/* Accept messages toggle */}
       <div className="mt-4 flex items-center justify-between rounded-xl border border-border p-6">
@@ -207,6 +205,11 @@ function UserDashboard() {
         />
       </div>
 
+      {/* Overview / analytics */}
+      <div className="mt-4">
+        <InboxStats refreshKey={statsKey} />
+      </div>
+
       <Separator className="my-10" />
 
       {/* Messages */}
@@ -217,23 +220,59 @@ function UserDashboard() {
             {total}
           </span>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2"
-          onClick={(e) => {
-            e.preventDefault();
-            refresh();
-          }}
-          disabled={isLoading}
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={exportMessages}
+            disabled={total === 0}
+          >
+            <Download className="h-4 w-4" />
+            Export
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={(e) => {
+              e.preventDefault();
+              refresh();
+            }}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCcw className="h-4 w-4" />
+            )}
+            Refresh
+          </Button>
+        </div>
+      </div>
+
+      {/* Search + sort */}
+      <div className="mb-6 flex flex-col gap-2 sm:flex-row">
+        <div className="relative flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search messages"
+            aria-label="Search messages"
+            className="h-10 w-full rounded-md border border-input bg-background pl-9 pr-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+          />
+        </div>
+        <select
+          value={sort}
+          onChange={(e) => setSort(e.target.value as 'newest' | 'oldest')}
+          aria-label="Sort messages"
+          className="h-10 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
         >
-          {isLoading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <RefreshCcw className="h-4 w-4" />
-          )}
-          Refresh
-        </Button>
+          <option value="newest">Newest first</option>
+          <option value="oldest">Oldest first</option>
+        </select>
       </div>
 
       {isLoading && messages.length === 0 ? (
@@ -248,7 +287,10 @@ function UserDashboard() {
                 key={message._id as string}
                 message={message}
                 onMessageDelete={handleDeleteMessage}
-                onSenderBlocked={() => loadPage(1, false)}
+                onSenderBlocked={() => {
+                  loadPage(1, false);
+                  bumpStats();
+                }}
               />
             ))}
           </div>
@@ -266,6 +308,13 @@ function UserDashboard() {
             </div>
           )}
         </>
+      ) : debouncedQuery ? (
+        <div className="rounded-xl border border-dashed border-border py-16 text-center">
+          <p className="text-sm font-medium">No matches</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            No messages match &ldquo;{debouncedQuery}&rdquo;.
+          </p>
+        </div>
       ) : (
         <div className="rounded-xl border border-dashed border-border py-16 text-center">
           <p className="text-sm font-medium">No messages yet</p>

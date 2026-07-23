@@ -27,9 +27,13 @@ Senders who need a nudge can generate AI-suggested prompts to break the ice.
 - ✉️ **Email verification & password reset** — 6-digit codes delivered with Resend + React Email
 - ⚙️ **Account settings** — change username (live session refresh), change password, delete account
 - 💬 **Custom prompt** — a personalized, SSR headline on your public page (e.g. "Ask me anything about my talk")
+- 📱 **QR code & sharing** — a downloadable QR for your link plus native Web Share on the dashboard
 - 🛡️ **Abuse protection** — rate limiting, a verify-code attempt cap, a content filter, and block-a-sender (even though senders are anonymous)
 - 🎛️ **Inbox controls** — toggle message acceptance on/off from the dashboard
 - 📥 **Paginated inbox** — messages live in their own indexed collection with "load more"
+- 🔎 **Search & sort** — filter your inbox by content and order newest/oldest first
+- 📊 **Overview** — message stats (total, last 7 days, today) with a 14-day trend chart
+- ⬇️ **Export** — download your inbox as CSV (or JSON)
 - ✨ **AI prompt suggestions** — streamed message ideas to help senders get started
 - 🌗 **Light & dark themes** — an editorial, minimal-mono design system with a flicker-free theme toggle
 - ✅ **Type-safe & validated** — end-to-end TypeScript with Zod schemas on every form and route
@@ -156,7 +160,9 @@ scripts/                      # Seed + migration helpers
 | `GET`  | `/api/check-username-unique` | Live username-availability check |
 | `POST` | `/api/send-message` | Send an anonymous message (public; content-filtered) |
 | `POST` | `/api/block-sender` | Block a sender and purge their messages |
-| `GET`  | `/api/get-messages` | Fetch the signed-in user's messages (`?page`, `?limit`) |
+| `GET`  | `/api/get-messages` | Fetch the signed-in user's messages (`?page`, `?limit`, `?q`, `?sort`) |
+| `GET`  | `/api/stats` | Inbox stats + 14-day daily series |
+| `GET`  | `/api/export` | Download messages (`?format=csv\|json`) |
 | `DELETE` | `/api/delete-message/[messageid]` | Delete a message (owner-scoped) |
 | `GET` / `POST` | `/api/accept-messages` | Read / toggle inbox acceptance |
 | `POST` | `/api/change-password` | Change password (requires current password) |
