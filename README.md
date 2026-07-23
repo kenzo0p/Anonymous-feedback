@@ -26,6 +26,7 @@ Senders who need a nudge can generate AI-suggested prompts to break the ice.
 - 🔐 **Credentials auth** — email/username + password via NextAuth (JWT sessions)
 - ✉️ **Email verification & password reset** — 6-digit codes delivered with Resend + React Email
 - ⚙️ **Account settings** — change username (live session refresh), change password, delete account
+- 💬 **Custom prompt** — a personalized, SSR headline on your public page (e.g. "Ask me anything about my talk")
 - 🛡️ **Abuse protection** — rate limiting, a verify-code attempt cap, a content filter, and block-a-sender (even though senders are anonymous)
 - 🎛️ **Inbox controls** — toggle message acceptance on/off from the dashboard
 - 📥 **Paginated inbox** — messages live in their own indexed collection with "load more"
@@ -160,17 +161,19 @@ scripts/                      # Seed + migration helpers
 | `GET` / `POST` | `/api/accept-messages` | Read / toggle inbox acceptance |
 | `POST` | `/api/change-password` | Change password (requires current password) |
 | `POST` | `/api/update-username` | Change username (uniqueness-checked) |
+| `GET` / `POST` | `/api/update-prompt` | Read / set the public-page prompt |
 | `DELETE` | `/api/delete-account` | Delete account + all messages (password-confirmed) |
 | `POST` | `/api/suggest-messages` | Stream AI-generated message prompts |
 | `*` | `/api/auth/[...nextauth]` | NextAuth handlers |
 
 ## Testing & CI
 
-Unit tests (Zod schemas, the rate limiter, utilities) run anywhere with
-`npm test`. Model integration tests activate automatically when `MONGODB_URI`
-is set (skipped otherwise). Every push and pull request runs
-[CI](.github/workflows/ci.yml) — lint, type check, tests (against a MongoDB
-service), and a production build.
+Unit tests (Zod schemas, the rate limiter, moderation, utilities) run anywhere
+with `npm test`. Integration tests — model behavior and the actual API route
+handlers (moderation, verify-code cap, ownership scoping, pagination, password
+reset) — activate automatically when `MONGODB_URI` is set, and skip otherwise.
+Every push and pull request runs [CI](.github/workflows/ci.yml) — lint, type
+check, tests (against a MongoDB service), and a production build.
 
 ## Security
 

@@ -7,6 +7,7 @@ import { forgotPasswordSchema } from "@/schemas/forgotPasswordSchema";
 import { resetPasswordSchema } from "@/schemas/resetPasswordSchema";
 import { changePasswordSchema } from "@/schemas/changePasswordSchema";
 import { updateUsernameSchema } from "@/schemas/updateUsernameSchema";
+import { updatePromptSchema } from "@/schemas/updatePromptSchema";
 
 describe("usernameValidation", () => {
   it("accepts a valid alphanumeric username", () => {
@@ -154,5 +155,20 @@ describe("updateUsernameSchema", () => {
     expect(updateUsernameSchema.safeParse({ username: "x" }).success).toBe(
       false
     );
+  });
+});
+
+describe("updatePromptSchema", () => {
+  it("accepts an empty prompt (clears it) and normal text", () => {
+    expect(updatePromptSchema.safeParse({ prompt: "" }).success).toBe(true);
+    expect(
+      updatePromptSchema.safeParse({ prompt: "Ask me anything" }).success
+    ).toBe(true);
+  });
+
+  it("rejects prompts longer than 150 characters", () => {
+    expect(
+      updatePromptSchema.safeParse({ prompt: "a".repeat(151) }).success
+    ).toBe(false);
   });
 });

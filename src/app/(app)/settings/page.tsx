@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -9,6 +9,7 @@ import { User } from "next-auth";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import {
   Form,
@@ -42,6 +43,21 @@ function SettingsPage() {
   const [savingPassword, setSavingPassword] = useState(false);
   const [deletePassword, setDeletePassword] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [prompt, setPrompt] = useState("");
+  const [savingPrompt, setSavingPrompt] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    axios
+      .get<{ prompt?: string }>("/api/update-prompt")
+      .then((res) => {
+        if (active) setPrompt(res.data.prompt ?? "");
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const usernameForm = useForm<z.infer<typeof updateUsernameSchema>>({
     resolver: zodResolver(updateUsernameSchema),
@@ -85,6 +101,25 @@ function SettingsPage() {
       });
     } finally {
       setSavingUsername(false);
+    }
+  };
+
+  const onSavePrompt = async () => {
+    setSavingPrompt(true);
+    try {
+      const res = await axios.post<ApiResponse>("/api/update-prompt", {
+        prompt,
+      });
+      toast({ title: "Saved", description: res.data.message });
+    } catch (error) {
+      const axiosError = error as AxiosError<ApiResponse>;
+      toast({
+        title: "Couldn't save prompt",
+        description: axiosError.response?.data.message ?? "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingPrompt(false);
     }
   };
 
@@ -175,6 +210,37 @@ function SettingsPage() {
             </Button>
           </form>
         </Form>
+      </section>
+
+      {/* Public prompt */}
+      <section className="mt-4 rounded-xl border border-border p-6">
+        <h2 className="text-sm font-semibold">Public prompt</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Shown as the headline on your public page. Leave blank for the
+          default.
+        </p>
+        <div className="mt-5 space-y-2">
+          <Textarea
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value.slice(0, 150))}
+            placeholder="e.g. Ask me anything about my conference talk"
+            className="min-h-20 resize-none"
+          />
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-xs text-muted-foreground">
+              {prompt.length}/150
+            </span>
+            <Button
+              type="button"
+              className="h-10"
+              onClick={onSavePrompt}
+              disabled={savingPrompt}
+            >
+              {savingPrompt && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save prompt
+            </Button>
+          </div>
+        </div>
       </section>
 
       {/* Security */}
