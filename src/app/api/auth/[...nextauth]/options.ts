@@ -96,7 +96,7 @@ if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
 export const authOptions: NextAuthOptions = {
   providers,
   callbacks: {
-    // On OAuth sign-in, upsert a Candor user keyed by verified email.
+    // On OAuth sign-in, upsert a Whistr user keyed by verified email.
     async signIn({ user, account }) {
       if (!account || account.provider === 'credentials') return true;
       const email = user.email;

@@ -21,7 +21,7 @@ export default function PasswordResetEmail({
   return (
     <Html lang="en" dir="ltr">
       <Head>
-        <title>Reset your Candor password</title>
+        <title>Reset your Whistr password</title>
         <Font
           fontFamily="Roboto"
           fallbackFontFamily="Verdana"
@@ -33,7 +33,7 @@ export default function PasswordResetEmail({
           fontStyle="normal"
         />
       </Head>
-      <Preview>Your Candor password reset code: {otp}</Preview>
+      <Preview>Your Whistr password reset code: {otp}</Preview>
       <Section>
         <Row>
           <Text
@@ -44,7 +44,7 @@ export default function PasswordResetEmail({
               margin: "0 0 8px",
             }}
           >
-            Candor
+            Whistr
           </Text>
         </Row>
         <Row>
@@ -52,7 +52,7 @@ export default function PasswordResetEmail({
         </Row>
         <Row>
           <Text>
-            We received a request to reset your Candor password. Use the code
+            We received a request to reset your Whistr password. Use the code
             below to choose a new one:
           </Text>
         </Row>

@@ -15,10 +15,28 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const title = "Whistr — Honest feedback, anonymously.";
+const description =
+  "Whistr gives you a link to collect anonymous feedback. Where your identity stays a secret.";
+
 export const metadata: Metadata = {
-  title: "Candor — Honest feedback, anonymously.",
-  description:
-    "Candor gives you a link to collect anonymous feedback. Where your identity stays a secret.",
+  metadataBase: new URL(
+    process.env.NEXTAUTH_URL ?? "http://localhost:3000"
+  ),
+  title,
+  description,
+  applicationName: "Whistr",
+  openGraph: {
+    title,
+    description,
+    siteName: "Whistr",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title,
+    description,
+  },
 };
 
 // Set the theme before paint to avoid a flash of the wrong palette.
@@ -39,9 +57,17 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} font-sans min-h-screen flex flex-col`}
       >
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:text-primary-foreground"
+        >
+          Skip to content
+        </a>
         <AuthProvider>
           <Navbar />
-          <div className="flex-1 flex flex-col">{children}</div>
+          <main id="main-content" className="flex-1 flex flex-col">
+            {children}
+          </main>
           <Toaster />
         </AuthProvider>
       </body>

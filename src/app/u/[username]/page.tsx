@@ -14,8 +14,8 @@ export async function generateMetadata({
   const { username } = await params;
   const name = decodeURIComponent(username);
   return {
-    title: `Send @${name} an anonymous message · Candor`,
-    description: `Leave @${name} honest, anonymous feedback on Candor.`,
+    title: `Send @${name} an anonymous message · Whistr`,
+    description: `Leave @${name} honest, anonymous feedback on Whistr.`,
   };
 }
 

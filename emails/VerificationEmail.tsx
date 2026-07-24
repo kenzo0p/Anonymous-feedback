@@ -38,7 +38,7 @@ export default function VerificationEmail({
       <Section>
         <Row>
           <Text style={{ fontWeight: 700, letterSpacing: "-0.01em", fontSize: "18px", margin: "0 0 8px" }}>
-            Candor
+            Whistr
           </Text>
         </Row>
         <Row>
@@ -46,7 +46,7 @@ export default function VerificationEmail({
         </Row>
         <Row>
           <Text>
-            Thank you for registering with Candor. Please use the following
+            Thank you for registering with Whistr. Please use the following
             verification code to complete your registration:
           </Text>
         </Row>

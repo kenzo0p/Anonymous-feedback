@@ -5,7 +5,7 @@ import { createHash } from "crypto";
 const SALT =
   process.env.IP_HASH_SALT ||
   process.env.NEXTAUTH_SECRET ||
-  "candor-dev-salt";
+  "whistr-dev-salt";
 
 export function hashIp(ip: string): string {
   return createHash("sha256").update(`${SALT}:${ip}`).digest("hex");

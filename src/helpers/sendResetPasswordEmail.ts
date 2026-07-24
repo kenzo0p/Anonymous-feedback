@@ -11,7 +11,7 @@ export async function sendResetPasswordEmail(
         await resend.emails.send({
             from: "onboarding@resend.dev",
             to: email,
-            subject: "Candor | Password reset code",
+            subject: "Whistr | Password reset code",
             react: PasswordResetEmail({ username, otp: resetCode }),
         });
         return { success: true, message: "Password reset email sent successfully" };

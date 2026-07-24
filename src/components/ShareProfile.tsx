@@ -30,7 +30,7 @@ export default function ShareProfile({
   const share = async () => {
     const data = {
       title: "Send me anonymous feedback",
-      text: `Send @${username} an anonymous message on Candor`,
+      text: `Send @${username} an anonymous message on Whistr`,
       url,
     };
     // Web Share where available (mostly mobile / secure contexts); else copy.
@@ -49,7 +49,7 @@ export default function ShareProfile({
     const canvas = qrRef.current?.querySelector("canvas");
     if (!canvas) return;
     const link = document.createElement("a");
-    link.download = `candor-${username}.png`;
+    link.download = `whistr-${username}.png`;
     link.href = canvas.toDataURL("image/png");
     link.click();
   };

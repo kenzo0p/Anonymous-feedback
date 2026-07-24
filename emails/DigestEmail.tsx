@@ -25,7 +25,7 @@ export default function DigestEmail({
   return (
     <Html lang="en" dir="ltr">
       <Head>
-        <title>Your Candor digest</title>
+        <title>Your Whistr digest</title>
         <Font
           fontFamily="Roboto"
           fallbackFontFamily="Verdana"
@@ -37,7 +37,7 @@ export default function DigestEmail({
           fontStyle="normal"
         />
       </Head>
-      <Preview>{`You have ${count} new anonymous ${plural} on Candor`}</Preview>
+      <Preview>{`You have ${count} new anonymous ${plural} on Whistr`}</Preview>
       <Section>
         <Row>
           <Text
@@ -48,7 +48,7 @@ export default function DigestEmail({
               margin: "0 0 8px",
             }}
           >
-            Candor
+            Whistr
           </Text>
         </Row>
         <Row>
@@ -77,7 +77,7 @@ export default function DigestEmail({
         </Row>
         <Row>
           <Text style={{ color: "#666", fontSize: "12px", marginTop: "16px" }}>
-            You can turn off these emails anytime in your Candor settings.
+            You can turn off these emails anytime in your Whistr settings.
           </Text>
         </Row>
       </Section>

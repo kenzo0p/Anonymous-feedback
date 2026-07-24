@@ -36,7 +36,7 @@ export default function Home() {
       {/* Hero */}
       <section className="relative overflow-hidden border-b border-border">
         <div className="pointer-events-none absolute inset-0 bg-grid" />
-        <main className="relative mx-auto flex max-w-3xl flex-col items-center px-4 py-24 text-center sm:py-32">
+        <div className="relative mx-auto flex max-w-3xl flex-col items-center px-4 py-24 text-center sm:py-32">
           <span className="eyebrow mb-6">Anonymous · Honest · Yours</span>
           <h1 className="text-balance text-4xl font-bold tracking-tight sm:text-6xl">
             Feedback so honest,
@@ -44,7 +44,7 @@ export default function Home() {
             it stays a secret.
           </h1>
           <p className="mt-6 max-w-xl text-balance text-base text-muted-foreground sm:text-lg">
-            Candor gives you a link to collect anonymous messages from anyone.
+            Whistr gives you a link to collect anonymous messages from anyone.
             No names attached — just real thoughts, delivered to you.
           </p>
           <div className="mt-9 flex flex-col items-center gap-3 sm:flex-row">
@@ -59,7 +59,7 @@ export default function Home() {
               </Button>
             </Link>
           </div>
-        </main>
+        </div>
       </section>
 
       {/* How it works */}
@@ -123,7 +123,7 @@ export default function Home() {
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-10 sm:flex-row sm:px-6">
           <Logo />
           <p className="font-mono text-xs text-muted-foreground">
-            © {new Date().getFullYear()} Candor. All rights reserved.
+            © {new Date().getFullYear()} Whistr. All rights reserved.
           </p>
         </div>
       </footer>

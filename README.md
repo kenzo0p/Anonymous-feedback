@@ -1,7 +1,7 @@
 <div align="center">
-  <img src="src/app/icon.svg" alt="Candor logo" width="72" height="72" />
+  <img src="src/app/icon.svg" alt="Whistr logo" width="72" height="72" />
 
-  # Candor
+  # Whistr
 
   **Honest feedback, anonymously.**
 
@@ -14,7 +14,7 @@
 
 ## Overview
 
-Candor gives every user a personal public link. Anyone can visit it and send an
+Whistr gives every user a personal public link. Anyone can visit it and send an
 anonymous message — no account required. Recipients read, manage, and delete
 their messages from a private dashboard, and can pause their inbox at any time.
 Senders who need a nudge can generate AI-suggested prompts to break the ice.
@@ -74,7 +74,7 @@ Create a `.env` file in the project root:
 
 ```bash
 # Database
-MONGODB_URI=mongodb://127.0.0.1:27017/candor
+MONGODB_URI=mongodb://127.0.0.1:27017/whistr
 
 # NextAuth
 NEXTAUTH_SECRET=replace-with-a-long-random-string
@@ -106,7 +106,7 @@ Open [http://localhost:3000](http://localhost:3000).
 ### Spin up a local MongoDB (optional)
 
 ```bash
-docker run -d --name candor-mongo -p 27017:27017 mongo:7
+docker run -d --name whistr-mongo -p 27017:27017 mongo:7
 ```
 
 ## Scripts
@@ -136,7 +136,7 @@ src/
 │   ├── api/                  # Route handlers (see below)
 │   ├── u/[username]/         # Public message page
 │   ├── context/              # AuthProvider (SessionProvider)
-│   ├── icon.svg              # App favicon (the Candor mark)
+│   ├── icon.svg              # App favicon (the Whistr mark)
 │   ├── layout.tsx            # Root layout + theme init
 │   └── page.tsx              # Landing page
 ├── components/               # Logo, Navbar, MessageCard, ThemeToggle, ui/
@@ -203,11 +203,11 @@ check, tests (against a MongoDB service), and a production build.
 
 ## Design
 
-Candor uses a **minimal-mono** system: ink-on-paper surfaces, hairline borders,
+Whistr uses a **minimal-mono** system: ink-on-paper surfaces, hairline borders,
 Geist typography, and a single restrained cobalt accent used sparingly. The
-logo mark is an open aperture "C" with a focal dot — an opening for honest
-words, and a lens that sees clearly. Full light and dark themes ship out of the
-box, with the theme set before first paint to avoid a flash.
+logo mark is a focal dot with two arcs rippling outward — a whisper travelling
+as sound. Full light and dark themes ship out of the box, with the theme set
+before first paint to avoid a flash.
 
 ## Deployment
 

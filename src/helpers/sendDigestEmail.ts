@@ -12,7 +12,7 @@ export async function sendDigestEmail(
         await resend.emails.send({
             from: "onboarding@resend.dev",
             to: email,
-            subject: `You have ${count} new anonymous message${count === 1 ? "" : "s"} on Candor`,
+            subject: `You have ${count} new anonymous message${count === 1 ? "" : "s"} on Whistr`,
             react: DigestEmail({
                 username,
                 count,

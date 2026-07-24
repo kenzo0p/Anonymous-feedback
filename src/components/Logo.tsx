@@ -1,9 +1,8 @@
 import { cn } from "@/lib/utils";
 
 /**
- * The Candor mark: an open aperture ("C") with a focal dot at its center —
- * an opening for honest words, and a lens that sees clearly. Monochrome and
- * theme-agnostic (draws in currentColor).
+ * The Whistr mark: a focal dot with two arcs rippling outward — a whisper
+ * travelling as sound. Monochrome and theme-agnostic (draws in currentColor).
  */
 export function LogoMark({ className }: { className?: string }) {
   return (
@@ -13,19 +12,25 @@ export function LogoMark({ className }: { className?: string }) {
       className={className}
       aria-hidden="true"
     >
+      <circle cx="7" cy="12" r="2.2" fill="currentColor" />
       <path
-        d="M18.5 6.5 A8.5 8.5 0 1 0 18.5 17.5"
+        d="M12 8.5a5 5 0 0 1 0 7"
         stroke="currentColor"
-        strokeWidth="2.5"
+        strokeWidth="2"
         strokeLinecap="round"
       />
-      <circle cx="12" cy="12" r="2.3" fill="currentColor" />
+      <path
+        d="M15.5 6a9 9 0 0 1 0 12"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
 
 /**
- * Full lockup: the mark in an ink tile plus the "Candor" wordmark.
+ * Full lockup: the mark in an ink tile plus the "Whistr" wordmark.
  * Pass `showWord={false}` for the mark-only variant.
  */
 export function Logo({
@@ -41,7 +46,7 @@ export function Logo({
         <LogoMark className="h-4 w-4" />
       </span>
       {showWord && (
-        <span className="text-sm font-semibold tracking-tight">Candor</span>
+        <span className="text-sm font-semibold tracking-tight">Whistr</span>
       )}
     </span>
   );

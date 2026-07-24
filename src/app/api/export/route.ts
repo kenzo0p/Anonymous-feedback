@@ -41,7 +41,7 @@ export async function GET(request: Request) {
       status: 200,
       headers: {
         "Content-Type": "application/json",
-        "Content-Disposition": 'attachment; filename="candor-messages.json"',
+        "Content-Disposition": 'attachment; filename="whistr-messages.json"',
       },
     });
   }
@@ -61,7 +61,7 @@ export async function GET(request: Request) {
     status: 200,
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": 'attachment; filename="candor-messages.csv"',
+      "Content-Disposition": 'attachment; filename="whistr-messages.csv"',
     },
   });
 }

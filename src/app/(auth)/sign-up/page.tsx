@@ -96,7 +96,7 @@ function SignUpPage() {
         <div className="mb-8">
           <span className="eyebrow">Create account</span>
           <h1 className="mt-3 text-3xl font-bold tracking-tight">
-            Join Candor
+            Join Whistr
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
             Claim your link and start collecting anonymous feedback.
